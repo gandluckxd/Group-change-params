@@ -260,12 +260,14 @@ CHECKBOX_STYLE = """
 QCheckBox {
     color: #e0e0e0;
     font-size: 10pt;
-    spacing: 8px;
+    spacing: 6px;
+    margin: 0px;
+    padding: 2px;
 }
 
 QCheckBox::indicator {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     border: 2px solid #5c5c5c;
     border-radius: 4px;
     background-color: #404040;

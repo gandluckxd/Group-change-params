@@ -3,6 +3,15 @@ Group Change Params API
 FastAPI service for group parameter changes in Altawin orders
 """
 
+import sys
+import os
+
+# Fix for --noconsole PyInstaller builds
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, "w")
+if sys.stderr is None:
+    sys.stderr = open(os.devnull, "w")
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv

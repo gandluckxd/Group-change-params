@@ -7,15 +7,79 @@ from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QTabWidget,
     QGroupBox, QFormLayout, QLineEdit, QComboBox, QPushButton,
     QLabel, QMessageBox, QStatusBar,
-    QSplitter, QFrame, QCheckBox, QScrollArea
+    QSplitter, QFrame, QCheckBox, QScrollArea,
+    QAction, QDialog, QDialogButtonBox, QHBoxLayout
 )
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 
 from core.api_client import get_api_client
 from .styles import (
     MAIN_WINDOW_STYLE, TAB_STYLE, GROUP_BOX_STYLE, BUTTON_STYLES,
-    INPUT_STYLE, LABEL_STYLES
+    INPUT_STYLE, LABEL_STYLES, CHECKBOX_STYLE
 )
+
+
+class LoadOrderDialog(QDialog):
+    """Dialog for loading order data"""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Загрузка заказа")
+        self.setModal(True)
+        self.setFixedSize(400, 200)
+        self.init_ui()
+    
+    def init_ui(self):
+        """Initialize dialog UI"""
+        layout = QVBoxLayout(self)
+        
+        # Info label
+        info_label = QLabel("Введите ID заказа для загрузки данных:")
+        info_label.setStyleSheet(LABEL_STYLES["subtitle"])
+        layout.addWidget(info_label)
+        
+        # Order ID input
+        self.order_id_input = QLineEdit()
+        self.order_id_input.setPlaceholderText("Введите ID заказа")
+        self.order_id_input.setStyleSheet(INPUT_STYLE)
+        self.order_id_input.returnPressed.connect(self.accept)
+        layout.addWidget(self.order_id_input)
+        
+        # Current order info (if any)
+        if hasattr(self.parent(), 'current_order_id') and self.parent().current_order_id:
+            current_label = QLabel(f"Текущий заказ: {self.parent().current_order_id}")
+            current_label.setStyleSheet(LABEL_STYLES["info"])
+            layout.addWidget(current_label)
+        
+        # Buttons
+        button_layout = QHBoxLayout()
+        
+        self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+        
+        # Style buttons
+        ok_button = self.button_box.button(QDialogButtonBox.Ok)
+        ok_button.setText("Загрузить")
+        ok_button.setStyleSheet(BUTTON_STYLES["primary"])
+        
+        cancel_button = self.button_box.button(QDialogButtonBox.Cancel)
+        cancel_button.setText("Отмена")
+        cancel_button.setStyleSheet(BUTTON_STYLES["secondary"])
+        
+        button_layout.addWidget(self.button_box)
+        layout.addLayout(button_layout)
+        
+        # Focus on input
+        self.order_id_input.setFocus()
+    
+    def get_order_id(self):
+        """Get entered order ID"""
+        try:
+            return int(self.order_id_input.text().strip())
+        except ValueError:
+            QMessageBox.warning(self, "Ошибка", "Введите корректный ID заказа")
+            return None
 
 
 class DataLoadThread(QThread):
@@ -99,6 +163,8 @@ class StuffsetsBreedChangeTab(QWidget):
         
         self.breeds_widget = QWidget()
         self.breeds_layout = QVBoxLayout(self.breeds_widget)
+        self.breeds_layout.setSpacing(0)  # Ultra compact spacing between checkboxes
+        self.breeds_layout.setContentsMargins(3, 3, 3, 3)  # Ultra compact margins
         self.breed_checkboxes = {}  # Dictionary to store checkboxes by breed name
         
         scroll_area.setWidget(self.breeds_widget)
@@ -176,6 +242,7 @@ class StuffsetsBreedChangeTab(QWidget):
             if breeds:
                 for breed in breeds:
                     checkbox = QCheckBox(f"🌳 {breed}")
+                    checkbox.setStyleSheet(CHECKBOX_STYLE)
                     checkbox.setChecked(True)  # Default to selected
                     checkbox.stateChanged.connect(self.update_apply_button_state)
                     self.breeds_layout.addWidget(checkbox)
@@ -299,6 +366,8 @@ class BreedChangeTab(QWidget):
         
         self.adds_breeds_widget = QWidget()
         self.adds_breeds_layout = QVBoxLayout(self.adds_breeds_widget)
+        self.adds_breeds_layout.setSpacing(0)  # Ultra compact spacing between checkboxes
+        self.adds_breeds_layout.setContentsMargins(3, 3, 3, 3)  # Ultra compact margins
         self.adds_breed_checkboxes = {}  # Dictionary to store checkboxes by breed name
         
         scroll_area.setWidget(self.adds_breeds_widget)
@@ -380,6 +449,7 @@ class BreedChangeTab(QWidget):
             if breeds:
                 for breed in breeds:
                     checkbox = QCheckBox(f"🌳 {breed}")
+                    checkbox.setStyleSheet(CHECKBOX_STYLE)
                     checkbox.setChecked(True)  # Default to selected
                     checkbox.stateChanged.connect(self.update_apply_button_state)
                     self.adds_breeds_layout.addWidget(checkbox)
@@ -515,6 +585,8 @@ class StuffsetsColorChangeTab(QWidget):
         
         self.colors_widget = QWidget()
         self.colors_layout = QVBoxLayout(self.colors_widget)
+        self.colors_layout.setSpacing(0)  # Ultra compact spacing between checkboxes
+        self.colors_layout.setContentsMargins(3, 3, 3, 3)  # Ultra compact margins
         self.color_checkboxes = {}  # Dictionary to store checkboxes by color name
         
         colors_scroll_area.setWidget(self.colors_widget)
@@ -611,6 +683,7 @@ class StuffsetsColorChangeTab(QWidget):
             if colors_data:
                 for color in colors_data:
                     checkbox = QCheckBox(f"🎨 {color['title']}")
+                    checkbox.setStyleSheet(CHECKBOX_STYLE)
                     checkbox.setChecked(True)  # Default to selected
                     checkbox.stateChanged.connect(self.update_apply_color_button_state)
                     self.colors_layout.addWidget(checkbox)
@@ -789,6 +862,8 @@ class ColorChangeTab(QWidget):
         
         self.colors_widget = QWidget()
         self.colors_layout = QVBoxLayout(self.colors_widget)
+        self.colors_layout.setSpacing(0)  # Ultra compact spacing between checkboxes
+        self.colors_layout.setContentsMargins(3, 3, 3, 3)  # Ultra compact margins
         self.color_checkboxes = {}  # Dictionary to store checkboxes by color name
         
         colors_scroll_area.setWidget(self.colors_widget)
@@ -891,6 +966,7 @@ class ColorChangeTab(QWidget):
         if self.order_colors_data:
             for color in self.order_colors_data:
                 checkbox = QCheckBox(f"🎨 {color['title']}")
+                checkbox.setStyleSheet(CHECKBOX_STYLE)
                 checkbox.setChecked(True)  # Default to selected
                 checkbox.stateChanged.connect(self.update_apply_color_button_state)
                 self.colors_layout.addWidget(checkbox)
@@ -1057,15 +1133,18 @@ class GroupChangeParamsWindow(QMainWindow):
         layout = QVBoxLayout(central_widget)
         layout.setContentsMargins(15, 15, 15, 15)
         
+        # Create menu bar
+        self.create_menu_bar()
+        
         # Title label
         title_label = QLabel("Групповое изменение параметров")
         title_label.setStyleSheet(LABEL_STYLES["title"])
         title_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(title_label)
         
-        # Order section
-        order_section = self.create_order_section()
-        layout.addWidget(order_section)
+        # Order info section (display only)
+        order_info_section = self.create_order_info_section()
+        layout.addWidget(order_info_section)
         
         # Create tab widget
         self.tabs = QTabWidget()
@@ -1089,70 +1168,43 @@ class GroupChangeParamsWindow(QMainWindow):
         self.setStatusBar(self.status_bar)
         self.status_bar.showMessage("Готов к работе")
     
-    def create_order_section(self):
-        """Create order input and info section"""
+    def create_order_info_section(self):
+        """Create order info display section (read-only)"""
         order_group = QGroupBox("Информация о заказе")
         order_group.setStyleSheet(GROUP_BOX_STYLE)
-        order_layout = QVBoxLayout(order_group)
+        order_layout = QFormLayout(order_group)
         
-        # Order ID input section
-        input_section = QFrame()
-        input_layout = QFormLayout(input_section)
-        
-        self.order_id_input = QLineEdit()
-        self.order_id_input.setPlaceholderText("Введите ID заказа")
-        self.order_id_input.setStyleSheet(INPUT_STYLE)
-        self.order_id_input.returnPressed.connect(self.load_order_data)
-        input_layout.addRow("ID заказа:", self.order_id_input)
-        
-        self.load_order_btn = QPushButton("Загрузить данные заказа")
-        self.load_order_btn.setStyleSheet(BUTTON_STYLES["primary"])
-        self.load_order_btn.clicked.connect(self.load_order_data)
-        input_layout.addRow("", self.load_order_btn)
-        
-        order_layout.addWidget(input_section)
-        
-        # Order info display section
-        info_section = QFrame()
-        info_layout = QFormLayout(info_section)
-        
+        # Order info labels (initialized with default values)
         self.order_name_label = QLabel("—")
         self.order_name_label.setStyleSheet(LABEL_STYLES["info"])
-        info_layout.addRow("Наименование:", self.order_name_label)
+        order_layout.addRow("Наименование:", self.order_name_label)
         
         self.order_number_label = QLabel("—")
         self.order_number_label.setStyleSheet(LABEL_STYLES["info"])
-        info_layout.addRow("Номер заказа:", self.order_number_label)
+        order_layout.addRow("Номер заказа:", self.order_number_label)
         
         self.order_date_label = QLabel("—")
         self.order_date_label.setStyleSheet(LABEL_STYLES["info"])
-        info_layout.addRow("Дата заказа:", self.order_date_label)
+        order_layout.addRow("Дата заказа:", self.order_date_label)
         
         self.customer_name_label = QLabel("—")
         self.customer_name_label.setStyleSheet(LABEL_STYLES["info"])
-        info_layout.addRow("Клиент:", self.customer_name_label)
+        order_layout.addRow("Клиент:", self.customer_name_label)
         
-        order_layout.addWidget(info_section)
+        # Current order ID label
+        self.current_order_label = QLabel("Не загружен")
+        self.current_order_label.setStyleSheet(LABEL_STYLES["info"])
+        order_layout.addRow("ID заказа:", self.current_order_label)
         
         return order_group
-    
+
     def get_current_order_id(self):
         """Get current order ID"""
         return self.current_order_id
     
-    def load_order_data(self):
-        """Load order data and notify tabs"""
-        try:
-            order_id = int(self.order_id_input.text().strip())
-        except ValueError:
-            QMessageBox.warning(self, "Ошибка", "Введите корректный ID заказа")
-            return
-        
+    def load_order_data_by_id(self, order_id: int):
+        """Load order data by ID and notify tabs"""
         self.current_order_id = order_id
-        
-        # Disable button during loading
-        self.load_order_btn.setEnabled(False)
-        self.load_order_btn.setText("Загрузка...")
         
         # Load order info and colors
         api_client = get_api_client()
@@ -1160,6 +1212,8 @@ class GroupChangeParamsWindow(QMainWindow):
         self.data_thread.data_loaded.connect(self.on_order_data_loaded)
         self.data_thread.error_occurred.connect(self.on_order_load_error)
         self.data_thread.start()
+        
+        self.status_bar.showMessage(f"Загрузка данных заказа {order_id}...")
     
     def on_order_data_loaded(self, data):
         """Handle loaded order data"""
@@ -1169,10 +1223,18 @@ class GroupChangeParamsWindow(QMainWindow):
         order_info = order_data.get("order_info", {})
         if order_info:
             self.order_info = order_info
+            # Update order info labels
             self.order_name_label.setText(order_info.get("ORDER_NAME", "—"))
             self.order_number_label.setText(str(order_info.get("ORDERNO", "—")))
             self.order_date_label.setText(str(order_info.get("ORDERDATE", "—")))
             self.customer_name_label.setText(order_info.get("CUSTOMER_NAME", "—"))
+            self.current_order_label.setText(str(self.current_order_id))
+            
+            # Update window title with order info
+            order_name = order_info.get("ORDER_NAME", "")
+            customer_name = order_info.get("CUSTOMER_NAME", "")
+            title = f"Group Change Params - Заказ {self.current_order_id}: {order_name} ({customer_name})"
+            self.setWindowTitle(title)
         
         # Load order colors in color tab
         order_colors = order_data.get("order_colors", [])
@@ -1191,29 +1253,77 @@ class GroupChangeParamsWindow(QMainWindow):
         if hasattr(self.stuffsets_color_tab, 'load_stuffsets_colors'):
             self.stuffsets_color_tab.load_stuffsets_colors(self.current_order_id)
         
-        # Re-enable button
-        self.load_order_btn.setEnabled(True)
-        self.load_order_btn.setText("Загрузить данные заказа")
-        
         self.status_bar.showMessage(f"Загружены данные заказа {self.current_order_id}")
     
     def on_order_load_error(self, error_msg):
         """Handle order load error"""
-        self.load_order_btn.setEnabled(True)
-        self.load_order_btn.setText("Загрузить данные заказа")
         self.status_bar.showMessage("Ошибка загрузки заказа")
         QMessageBox.critical(self, "Ошибка", f"Не удалось загрузить данные заказа: {error_msg}")
     
     def setup_window(self):
         """Setup window properties"""
         self.setWindowTitle("Group Change Params - Групповое изменение параметров")
-        self.setMinimumSize(900, 950)  # Increased height by 250
-        self.resize(1200, 1050)  # Increased height by 250
+        
+        # Set smaller window size
+        self.setMinimumSize(1300, 800)
+        self.resize(1300, 1000)
+        
+        # Center window on screen
+        self.center_on_screen()
+    
+    def center_on_screen(self):
+        """Center window on screen"""
+        from PyQt5.QtWidgets import QDesktopWidget
+        
+        # Get screen geometry
+        desktop = QDesktopWidget()
+        screen_geometry = desktop.availableGeometry()
+        
+        # Get window geometry
+        window_geometry = self.frameGeometry()
+        
+        # Calculate center position
+        center_point = screen_geometry.center()
+        window_geometry.moveCenter(center_point)
+        
+        # Move window to center
+        self.move(window_geometry.topLeft())
+    
+    def create_menu_bar(self):
+        """Create menu bar with Parameters menu"""
+        menubar = self.menuBar()
+        
+        # Parameters menu
+        params_menu = menubar.addMenu('Параметры')
+        
+        # Load order action
+        load_order_action = QAction('Загрузить заказ...', self)
+        load_order_action.setShortcut('Ctrl+O')
+        load_order_action.setStatusTip('Загрузить данные заказа по ID')
+        load_order_action.triggered.connect(self.show_load_order_dialog)
+        params_menu.addAction(load_order_action)
+        
+        # Separator
+        params_menu.addSeparator()
+        
+        # Exit action
+        exit_action = QAction('Выход', self)
+        exit_action.setShortcut('Ctrl+Q')
+        exit_action.setStatusTip('Выйти из приложения')
+        exit_action.triggered.connect(self.close)
+        params_menu.addAction(exit_action)
+    
+    def show_load_order_dialog(self):
+        """Show dialog to load order data"""
+        dialog = LoadOrderDialog(self)
+        if dialog.exec() == QDialog.Accepted:
+            order_id = dialog.get_order_id()
+            if order_id:
+                self.load_order_data_by_id(order_id)
     
     def set_order_id(self, order_id: int):
         """Set order ID from command line argument"""
-        self.order_id_input.setText(str(order_id))
-        self.load_order_data()  # Automatically load order data
+        self.load_order_data_by_id(order_id)  # Automatically load order data
     
     def closeEvent(self, event):
         """Handle close event"""
