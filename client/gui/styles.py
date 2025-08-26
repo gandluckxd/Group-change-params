@@ -283,6 +283,31 @@ QCheckBox::indicator:hover {
 }
 """
 
+# Dialog button styles
+DIALOG_BUTTON_STYLE = """
+QPushButton {
+    background-color: #0078d4;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 9pt;
+    min-width: 60px;
+    min-height: 24px;
+}
+QPushButton:hover {
+    background-color: #106ebe;
+}
+QPushButton:pressed {
+    background-color: #005a9e;
+}
+QPushButton:default {
+    background-color: #0078d4;
+    border: 2px solid #005a9e;
+}
+"""
+
 # List widget styles
 LIST_STYLE = """
 QListWidget {

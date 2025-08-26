@@ -15,7 +15,7 @@ from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from core.api_client import get_api_client
 from .styles import (
     MAIN_WINDOW_STYLE, TAB_STYLE, GROUP_BOX_STYLE, BUTTON_STYLES,
-    INPUT_STYLE, LABEL_STYLES, CHECKBOX_STYLE
+    INPUT_STYLE, LABEL_STYLES, CHECKBOX_STYLE, DIALOG_BUTTON_STYLE
 )
 
 
@@ -58,14 +58,14 @@ class LoadOrderDialog(QDialog):
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
         
-        # Style buttons
+        # Style buttons with Russian text
         ok_button = self.button_box.button(QDialogButtonBox.Ok)
         ok_button.setText("Загрузить")
-        ok_button.setStyleSheet(BUTTON_STYLES["primary"])
+        ok_button.setStyleSheet(DIALOG_BUTTON_STYLE)
         
         cancel_button = self.button_box.button(QDialogButtonBox.Cancel)
         cancel_button.setText("Отмена")
-        cancel_button.setStyleSheet(BUTTON_STYLES["secondary"])
+        cancel_button.setStyleSheet(DIALOG_BUTTON_STYLE)
         
         button_layout.addWidget(self.button_box)
         layout.addLayout(button_layout)
@@ -78,7 +78,7 @@ class LoadOrderDialog(QDialog):
         try:
             return int(self.order_id_input.text().strip())
         except ValueError:
-            QMessageBox.warning(self, "Ошибка", "Введите корректный ID заказа")
+            self.parent().show_warning_message("Ошибка ввода", "Введите корректный числовой ID заказа")
             return None
 
 
@@ -287,27 +287,39 @@ class StuffsetsBreedChangeTab(QWidget):
     def apply_stuffsets_breed_change(self):
         """Apply breed change for stuffsets"""
         if not self.current_order_id:
-            QMessageBox.warning(self, "Ошибка", "Не выбран заказ")
+            if self.parent_window:
+                self.parent_window.show_warning_message("Ошибка", "Не выбран заказ")
             return
         
         selected_breeds = self.get_selected_breeds()
         if not selected_breeds:
-            QMessageBox.warning(self, "Ошибка", "Выберите породы для замены")
+            if self.parent_window:
+                self.parent_window.show_warning_message("Ошибка", "Выберите породы для замены")
             return
         
         new_breed = self.breed_combo.currentData()
         if not new_breed or new_breed == "":
-            QMessageBox.warning(self, "Ошибка", "Выберите новую породу")
+            if self.parent_window:
+                self.parent_window.show_warning_message("Ошибка", "Выберите новую породу")
             return
         
         breeds_text = ", ".join(selected_breeds)
-        reply = QMessageBox.question(
-            self, 
-            "Подтверждение", 
-            f"Изменить породы [{breeds_text}] на '{new_breed}' для stuffsets в заказе {self.current_order_id}?",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No
-        )
+        order_name = self.parent_window.get_order_display_name() if self.parent_window else f"заказ ID: {self.current_order_id}"
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Подтверждение изменения")
+        msg_box.setText(f"Изменить породы {breeds_text} на {new_breed} для наборов в {order_name}?")
+        msg_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        msg_box.setDefaultButton(QMessageBox.No)
+        
+        # Russian button text and styling
+        yes_button = msg_box.button(QMessageBox.Yes)
+        yes_button.setText("Да")
+        yes_button.setStyleSheet(DIALOG_BUTTON_STYLE)
+        no_button = msg_box.button(QMessageBox.No)
+        no_button.setText("Нет")
+        no_button.setStyleSheet(DIALOG_BUTTON_STYLE)
+        
+        reply = msg_box.exec()
         
         if reply == QMessageBox.Yes:
             try:
@@ -316,20 +328,23 @@ class StuffsetsBreedChangeTab(QWidget):
                 result = api_client.change_stuffsets_breed(self.current_order_id, new_breed, selected_breeds)
                 
                 if result.get("success", False):
-                    QMessageBox.information(self, "Успех", result.get("message", "Породы изменены"))
+                    order_name = self.parent_window.get_order_display_name() if self.parent_window else f"заказ ID: {self.current_order_id}"
+                    success_msg = f"Породы наборов успешно изменены в {order_name}"
+                    if self.parent_window:
+                        self.parent_window.show_success_message("Изменение завершено", success_msg)
                     # Reload current breeds
                     self.load_stuffsets_breeds(self.current_order_id)
                     if self.parent_window:
-                        self.parent_window.status_bar.showMessage("Породы stuffsets успешно изменены")
+                        self.parent_window.status_bar.showMessage("Породы наборов успешно изменены")
                 else:
                     error_msg = result.get("error", "Неизвестная ошибка")
-                    QMessageBox.warning(self, "Ошибка", f"Не удалось изменить породы: {error_msg}")
                     if self.parent_window:
+                        self.parent_window.show_warning_message("Ошибка", f"Не удалось изменить породы: {error_msg}")
                         self.parent_window.status_bar.showMessage("Ошибка изменения пород stuffsets")
             
             except Exception as e:
-                QMessageBox.critical(self, "Ошибка", f"Ошибка при изменении пород: {str(e)}")
                 if self.parent_window:
+                    self.parent_window.show_error_message("Ошибка", f"Ошибка при изменении пород: {str(e)}")
                     self.parent_window.status_bar.showMessage(f"Ошибка: {str(e)}")
 
 
@@ -508,13 +523,22 @@ class BreedChangeTab(QWidget):
             return
         
         breeds_text = ", ".join(selected_breeds)
-        reply = QMessageBox.question(
-            self, 
-            "Подтверждение", 
-            f"Изменить породы [{breeds_text}] на '{new_breed}' для дополнений в заказе {self.current_order_id}?",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No
-        )
+        order_name = self.parent_window.get_order_display_name() if self.parent_window else f"заказ ID: {self.current_order_id}"
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Подтверждение изменения")
+        msg_box.setText(f"Изменить породы {breeds_text} на {new_breed} для дополнений в {order_name}?")
+        msg_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        msg_box.setDefaultButton(QMessageBox.No)
+        
+        # Russian button text and styling
+        yes_button = msg_box.button(QMessageBox.Yes)
+        yes_button.setText("Да")
+        yes_button.setStyleSheet(DIALOG_BUTTON_STYLE)
+        no_button = msg_box.button(QMessageBox.No)
+        no_button.setText("Нет")
+        no_button.setStyleSheet(DIALOG_BUTTON_STYLE)
+        
+        reply = msg_box.exec()
         
         if reply == QMessageBox.Yes:
             try:
@@ -523,7 +547,10 @@ class BreedChangeTab(QWidget):
                 result = api_client.change_breed(self.current_order_id, new_breed, selected_breeds)
                 
                 if result.get("success", False):
-                    QMessageBox.information(self, "Успех", result.get("message", "Породы изменены"))
+                    order_name = self.parent_window.get_order_display_name() if self.parent_window else f"заказ ID: {self.current_order_id}"
+                    success_msg = f"Породы дополнений успешно изменены в {order_name}"
+                    if self.parent_window:
+                        self.parent_window.show_success_message("Изменение завершено", success_msg)
                     # Reload current breeds
                     self.load_adds_breeds(self.current_order_id)
                     if self.parent_window:
@@ -535,8 +562,8 @@ class BreedChangeTab(QWidget):
                         self.parent_window.status_bar.showMessage("Ошибка изменения пород дополнений")
             
             except Exception as e:
-                QMessageBox.critical(self, "Ошибка", f"Ошибка при изменении пород: {str(e)}")
                 if self.parent_window:
+                    self.parent_window.show_error_message("Ошибка", f"Ошибка при изменении пород: {str(e)}")
                     self.parent_window.status_bar.showMessage(f"Ошибка: {str(e)}")
 
 
@@ -790,11 +817,22 @@ class StuffsetsColorChangeTab(QWidget):
         
         # Confirm action
         old_colors_str = ", ".join(selected_colors)
-        reply = QMessageBox.question(
-            self, "Подтверждение",
-            f"Заменить цвета наборов [{old_colors_str}] на '{new_color}' ({new_colorgroup}) в заказе {self.current_order_id}?",
-            QMessageBox.Yes | QMessageBox.No
-        )
+        order_name = self.parent_window.get_order_display_name() if self.parent_window else f"заказ ID: {self.current_order_id}"
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Подтверждение изменения")
+        msg_box.setText(f"Заменить цвета наборов {old_colors_str} на {new_color} ({new_colorgroup}) в {order_name}?")
+        msg_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        msg_box.setDefaultButton(QMessageBox.No)
+        
+        # Russian button text and styling
+        yes_button = msg_box.button(QMessageBox.Yes)
+        yes_button.setText("Да")
+        yes_button.setStyleSheet(DIALOG_BUTTON_STYLE)
+        no_button = msg_box.button(QMessageBox.No)
+        no_button.setText("Нет")
+        no_button.setStyleSheet(DIALOG_BUTTON_STYLE)
+        
+        reply = msg_box.exec()
         
         if reply != QMessageBox.Yes:
             return
@@ -804,7 +842,10 @@ class StuffsetsColorChangeTab(QWidget):
             result = api_client.change_stuffsets_color(self.current_order_id, new_color, new_colorgroup, selected_colors)
             
             if result.get("success"):
-                QMessageBox.information(self, "Успех", result.get("message", "Цвета наборов успешно изменены"))
+                order_name = self.parent_window.get_order_display_name() if self.parent_window else f"заказ ID: {self.current_order_id}"
+                success_msg = f"Цвета наборов успешно изменены в {order_name}"
+                if self.parent_window:
+                    self.parent_window.show_success_message("Изменение завершено", success_msg)
                 self.status_label.setText("Цвета наборов изменены успешно")
                 # Reload colors to update the checkboxes
                 self.load_stuffsets_colors(self.current_order_id)
@@ -1056,7 +1097,7 @@ class ColorChangeTab(QWidget):
         # Get order ID from parent window
         order_id = self.parent_window.get_current_order_id()
         if not order_id:
-            QMessageBox.warning(self, "Ошибка", "Введите ID заказа в общем поле")
+            QMessageBox.warning(self, "Ошибка", "Загрузите заказ через меню 'Параметры → Загрузить заказ...'")
             return
         
         selected_colors = self.get_selected_colors()
@@ -1082,11 +1123,22 @@ class ColorChangeTab(QWidget):
         
         # Confirm action
         old_colors_str = ", ".join(selected_colors)
-        reply = QMessageBox.question(
-            self, "Подтверждение",
-            f"Заменить цвета [{old_colors_str}] на '{new_color}' ({new_colorgroup}) в заказе {order_id}?",
-            QMessageBox.Yes | QMessageBox.No
-        )
+        order_name = self.parent_window.get_order_display_name() if self.parent_window else f"заказ ID: {order_id}"
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Подтверждение изменения")
+        msg_box.setText(f"Заменить цвета дополнений {old_colors_str} на {new_color} ({new_colorgroup}) в {order_name}?")
+        msg_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        msg_box.setDefaultButton(QMessageBox.No)
+        
+        # Russian button text and styling
+        yes_button = msg_box.button(QMessageBox.Yes)
+        yes_button.setText("Да")
+        yes_button.setStyleSheet(DIALOG_BUTTON_STYLE)
+        no_button = msg_box.button(QMessageBox.No)
+        no_button.setText("Нет")
+        no_button.setStyleSheet(DIALOG_BUTTON_STYLE)
+        
+        reply = msg_box.exec()
         
         if reply != QMessageBox.Yes:
             return
@@ -1096,11 +1148,14 @@ class ColorChangeTab(QWidget):
             result = api_client.change_color(order_id, new_color, new_colorgroup, selected_colors)
             
             if result.get("success"):
-                QMessageBox.information(self, "Успех", result.get("message", "Цвета успешно изменены"))
+                order_name = self.parent_window.get_order_display_name() if self.parent_window else f"заказ ID: {order_id}"
+                success_msg = f"Цвета дополнений успешно изменены в {order_name}"
+                if self.parent_window:
+                    self.parent_window.show_success_message("Изменение завершено", success_msg)
                 self.status_label.setText("Цвета изменены успешно")
                 # Reload colors to update the checkboxes
                 if hasattr(self.parent_window, 'current_order_id') and self.parent_window.current_order_id:
-                    self.parent_window.load_order_data()
+                    self.parent_window.load_order_data_by_id(self.parent_window.current_order_id)
             else:
                 error_msg = result.get("error", "Не удалось изменить цвета")
                 QMessageBox.warning(self, "Ошибка", error_msg)
@@ -1175,10 +1230,6 @@ class GroupChangeParamsWindow(QMainWindow):
         order_layout = QFormLayout(order_group)
         
         # Order info labels (initialized with default values)
-        self.order_name_label = QLabel("—")
-        self.order_name_label.setStyleSheet(LABEL_STYLES["info"])
-        order_layout.addRow("Наименование:", self.order_name_label)
-        
         self.order_number_label = QLabel("—")
         self.order_number_label.setStyleSheet(LABEL_STYLES["info"])
         order_layout.addRow("Номер заказа:", self.order_number_label)
@@ -1186,6 +1237,10 @@ class GroupChangeParamsWindow(QMainWindow):
         self.order_date_label = QLabel("—")
         self.order_date_label.setStyleSheet(LABEL_STYLES["info"])
         order_layout.addRow("Дата заказа:", self.order_date_label)
+        
+        self.order_name_label = QLabel("—")
+        self.order_name_label.setStyleSheet(LABEL_STYLES["info"])
+        order_layout.addRow("Адрес:", self.order_name_label)
         
         self.customer_name_label = QLabel("—")
         self.customer_name_label.setStyleSheet(LABEL_STYLES["info"])
@@ -1201,6 +1256,61 @@ class GroupChangeParamsWindow(QMainWindow):
     def get_current_order_id(self):
         """Get current order ID"""
         return self.current_order_id
+    
+    def get_order_display_name(self):
+        """Get order display name for messages"""
+        if hasattr(self, 'order_info') and self.order_info:
+            order_number = self.order_info.get("ORDERNO", "")
+            if order_number:
+                return f"заказ №{order_number} (ID: {self.current_order_id})"
+        return f"заказ ID: {self.current_order_id}" if self.current_order_id else "заказ"
+    
+    def show_success_message(self, title, message):
+        """Show success message with recalculation warning"""
+        full_message = f"{message}\n\nОБЯЗАТЕЛЬНО ПЕРЕСЧИТАЙТЕ ЗАКАЗ!"
+        
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle(title)
+        msg_box.setText(full_message)
+        msg_box.setIcon(QMessageBox.Information)
+        msg_box.setStandardButtons(QMessageBox.Ok)
+        
+        # Style OK button
+        ok_button = msg_box.button(QMessageBox.Ok)
+        ok_button.setText("ОК")
+        ok_button.setStyleSheet(DIALOG_BUTTON_STYLE)
+        
+        msg_box.exec()
+    
+    def show_warning_message(self, title, message):
+        """Show warning message with styled button"""
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle(title)
+        msg_box.setText(message)
+        msg_box.setIcon(QMessageBox.Warning)
+        msg_box.setStandardButtons(QMessageBox.Ok)
+        
+        # Style OK button
+        ok_button = msg_box.button(QMessageBox.Ok)
+        ok_button.setText("ОК")
+        ok_button.setStyleSheet(DIALOG_BUTTON_STYLE)
+        
+        msg_box.exec()
+    
+    def show_error_message(self, title, message):
+        """Show error message with styled button"""
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle(title)
+        msg_box.setText(message)
+        msg_box.setIcon(QMessageBox.Critical)
+        msg_box.setStandardButtons(QMessageBox.Ok)
+        
+        # Style OK button
+        ok_button = msg_box.button(QMessageBox.Ok)
+        ok_button.setText("ОК")
+        ok_button.setStyleSheet(DIALOG_BUTTON_STYLE)
+        
+        msg_box.exec()
     
     def load_order_data_by_id(self, order_id: int):
         """Load order data by ID and notify tabs"""
@@ -1231,9 +1341,12 @@ class GroupChangeParamsWindow(QMainWindow):
             self.current_order_label.setText(str(self.current_order_id))
             
             # Update window title with order info
-            order_name = order_info.get("ORDER_NAME", "")
+            order_number = order_info.get("ORDERNO", "")
             customer_name = order_info.get("CUSTOMER_NAME", "")
-            title = f"Group Change Params - Заказ {self.current_order_id}: {order_name} ({customer_name})"
+            if order_number:
+                title = f"Group Change Params - Заказ №{order_number} ({customer_name})"
+            else:
+                title = f"Group Change Params - ID: {self.current_order_id} ({customer_name})"
             self.setWindowTitle(title)
         
         # Load order colors in color tab
@@ -1265,8 +1378,8 @@ class GroupChangeParamsWindow(QMainWindow):
         self.setWindowTitle("Group Change Params - Групповое изменение параметров")
         
         # Set smaller window size
-        self.setMinimumSize(1300, 800)
-        self.resize(1300, 1000)
+        self.setMinimumSize(1100, 800)
+        self.resize(1100, 1000)
         
         # Center window on screen
         self.center_on_screen()
@@ -1327,12 +1440,21 @@ class GroupChangeParamsWindow(QMainWindow):
     
     def closeEvent(self, event):
         """Handle close event"""
-        reply = QMessageBox.question(
-            self, "Выход",
-            "Вы действительно хотите выйти?",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No
-        )
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Выход из программы")
+        msg_box.setText("Вы действительно хотите закрыть программу?")
+        msg_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        msg_box.setDefaultButton(QMessageBox.No)
+        
+        # Russian button text and styling
+        yes_button = msg_box.button(QMessageBox.Yes)
+        yes_button.setText("Да")
+        yes_button.setStyleSheet(DIALOG_BUTTON_STYLE)
+        no_button = msg_box.button(QMessageBox.No)
+        no_button.setText("Нет")
+        no_button.setStyleSheet(DIALOG_BUTTON_STYLE)
+        
+        reply = msg_box.exec()
         
         if reply == QMessageBox.Yes:
             event.accept()
