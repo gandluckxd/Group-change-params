@@ -1378,8 +1378,8 @@ class GroupChangeParamsWindow(QMainWindow):
         self.setWindowTitle("Group Change Params - Групповое изменение параметров")
         
         # Set smaller window size
-        self.setMinimumSize(1100, 800)
-        self.resize(1100, 1000)
+        self.setMinimumSize(800, 850)
+        self.resize(1200, 850)
         
         # Center window on screen
         self.center_on_screen()
