@@ -10,6 +10,7 @@ class BreedChangeRequest(BaseModel):
     """Request model for changing breed (wood type)"""
     order_id: int
     breed_code: str
+    selected_breeds: Optional[List[str]] = None
 
 
 class ColorChangeRequest(BaseModel):

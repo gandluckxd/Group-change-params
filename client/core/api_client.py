@@ -56,11 +56,12 @@ class GroupChangeParamsAPIClient:
         """Get order information"""
         return self._make_request("GET", f"/api/orders/{order_id}/info")
     
-    def change_breed(self, order_id: int, breed_code: str) -> Dict[str, Any]:
+    def change_breed(self, order_id: int, breed_code: str, selected_breeds: List[str] = None) -> Dict[str, Any]:
         """Change breed in order"""
         data = {
             "order_id": order_id,
-            "breed_code": breed_code
+            "breed_code": breed_code,
+            "selected_breeds": selected_breeds
         }
         return self._make_request("POST", "/api/change-breed", json=data)
     
@@ -73,6 +74,37 @@ class GroupChangeParamsAPIClient:
             "old_colors": old_colors
         }
         return self._make_request("POST", "/api/change-color", json=data)
+    
+    def get_stuffsets_breeds(self, order_id: int) -> List[str]:
+        """Get breeds used in stuffsets orderitems"""
+        return self._make_request("GET", f"/api/orders/{order_id}/stuffsets-breeds")
+    
+    def get_adds_breeds(self, order_id: int) -> List[str]:
+        """Get breeds used in adds (дополнения)"""
+        return self._make_request("GET", f"/api/orders/{order_id}/adds-breeds")
+    
+    def change_stuffsets_breed(self, order_id: int, breed_code: str, selected_breeds: List[str] = None) -> Dict[str, Any]:
+        """Change breed in stuffsets orderitems"""
+        data = {
+            "order_id": order_id,
+            "breed_code": breed_code,
+            "selected_breeds": selected_breeds
+        }
+        return self._make_request("POST", "/api/change-stuffsets-breed", json=data)
+    
+    def get_stuffsets_colors(self, order_id: int) -> List[Dict[str, Any]]:
+        """Get colors used in stuffsets orderitems"""
+        return self._make_request("GET", f"/api/orders/{order_id}/stuffsets-colors")
+    
+    def change_stuffsets_color(self, order_id: int, new_color: str, new_colorgroup: str, old_colors: List[str]) -> Dict[str, Any]:
+        """Change color in stuffsets orderitems"""
+        data = {
+            "order_id": order_id,
+            "new_color": new_color,
+            "new_colorgroup": new_colorgroup,
+            "old_colors": old_colors
+        }
+        return self._make_request("POST", "/api/change-stuffsets-color", json=data)
 
 
 # Global API client instance

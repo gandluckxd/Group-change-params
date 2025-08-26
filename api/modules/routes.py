@@ -11,6 +11,8 @@ from modules.models import (
 from db.db_functions import (
     get_available_breeds, get_color_groups, get_colors_by_group,
     get_order_colors, get_order_info, update_breed_in_order, update_color_in_order,
+    update_breed_in_stuffsets_orderitems, get_stuffsets_breeds_in_order, get_adds_breeds_in_order,
+    get_stuffsets_colors_in_order, update_color_in_stuffsets_orderitems,
     test_connection
 )
 
@@ -115,7 +117,7 @@ async def change_breed(request: BreedChangeRequest):
     
     try:
         print("🚀 Calling update_breed_in_order function...")
-        success = update_breed_in_order(request.order_id, request.breed_code)
+        success = update_breed_in_order(request.order_id, request.breed_code, request.selected_breeds)
         
         print(f"🚀 update_breed_in_order returned: {success}")
         
@@ -165,3 +167,112 @@ async def change_color(request: ColorChangeRequest):
             )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to change color: {str(e)}")
+
+
+@router.get("/orders/{order_id}/stuffsets-breeds")
+async def get_stuffsets_breeds_endpoint(order_id: int):
+    """Get breeds used in stuffsets orderitems"""
+    try:
+        breeds_data = get_stuffsets_breeds_in_order(order_id)
+        return [breed["BREED_CODE"] for breed in breeds_data]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get stuffsets breeds: {str(e)}")
+
+
+@router.get("/orders/{order_id}/adds-breeds")
+async def get_adds_breeds_endpoint(order_id: int):
+    """Get breeds used in adds (dополнения)"""
+    try:
+        breeds_data = get_adds_breeds_in_order(order_id)
+        return [breed["BREED_CODE"] for breed in breeds_data]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get adds breeds: {str(e)}")
+
+
+@router.get("/orders/{order_id}/stuffsets-colors")
+async def get_stuffsets_colors_endpoint(order_id: int):
+    """Get colors used in stuffsets orderitems"""
+    try:
+        colors_data = get_stuffsets_colors_in_order(order_id)
+        return [{"title": color["COLOR_TITLE"]} for color in colors_data]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get stuffsets colors: {str(e)}")
+
+
+@router.post("/change-stuffsets-breed", response_model=APIResponse)
+async def change_stuffsets_breed(request: BreedChangeRequest):
+    """Change breed (wood type) in stuffsets orderitems"""
+    print("🚀" + "=" * 79)
+    print("🚀 API ENDPOINT: /change-stuffsets-breed CALLED")
+    print(f"🚀 Request received: order_id={request.order_id}, breed_code='{request.breed_code}'")
+    print("🚀" + "=" * 79)
+    
+    try:
+        print("🚀 Calling update_breed_in_stuffsets_orderitems function...")
+        success = update_breed_in_stuffsets_orderitems(request.order_id, request.breed_code, request.selected_breeds)
+        
+        print(f"🚀 update_breed_in_stuffsets_orderitems returned: {success}")
+        
+        if success:
+            response = APIResponse(
+                success=True,
+                message=f"Stuffsets breed changed to '{request.breed_code}' in order {request.order_id}"
+            )
+            print(f"🚀 Returning SUCCESS response: {response}")
+            print("🚀" + "=" * 79)
+            return response
+        else:
+            response = APIResponse(
+                success=False,
+                message="Failed to update stuffsets breed",
+                error="Database update operation failed"
+            )
+            print(f"🚀 Returning FAILURE response: {response}")
+            print("🚀" + "=" * 79)
+            return response
+    except Exception as e:
+        print(f"🚀 EXCEPTION in change_stuffsets_breed endpoint: {e}")
+        print("🚀" + "=" * 79)
+        raise HTTPException(status_code=500, detail=f"Failed to change stuffsets breed: {str(e)}")
+
+
+@router.post("/change-stuffsets-color", response_model=APIResponse)
+async def change_stuffsets_color(request: ColorChangeRequest):
+    """Change color in stuffsets orderitems"""
+    print("🚀" + "=" * 79)
+    print("🚀 API ENDPOINT: /change-stuffsets-color CALLED")
+    print(f"🚀 Request received: order_id={request.order_id}, new_color='{request.new_color}', old_colors={request.old_colors}")
+    print("🚀" + "=" * 79)
+    
+    try:
+        print("🚀 Calling update_color_in_stuffsets_orderitems function...")
+        success = update_color_in_stuffsets_orderitems(
+            request.order_id, 
+            request.new_color, 
+            request.new_colorgroup, 
+            request.old_colors
+        )
+        
+        print(f"🚀 update_color_in_stuffsets_orderitems returned: {success}")
+        
+        if success:
+            response = APIResponse(
+                success=True,
+                message=f"Stuffsets colors changed to '{request.new_color}' in order {request.order_id}"
+            )
+            print(f"🚀 Returning SUCCESS response: {response}")
+            print("🚀" + "=" * 79)
+            return response
+        else:
+            response = APIResponse(
+                success=False,
+                message="Failed to update stuffsets colors",
+                error="Database update operation failed"
+            )
+            print(f"🚀 Returning FAILURE response: {response}")
+            print("🚀" + "=" * 79)
+            return response
+    except Exception as e:
+        print(f"🚀 EXCEPTION in change_stuffsets_color endpoint: {e}")
+        print("🚀" + "=" * 79)
+        raise HTTPException(status_code=500, detail=f"Failed to change stuffsets color: {str(e)}")
