@@ -1336,7 +1336,35 @@ class GroupChangeParamsWindow(QMainWindow):
             # Update order info labels
             self.order_name_label.setText(order_info.get("ORDER_NAME", "—"))
             self.order_number_label.setText(str(order_info.get("ORDERNO", "—")))
-            self.order_date_label.setText(str(order_info.get("ORDERDATE", "—")))
+            # Format date for display
+            date_value = order_info.get("DATEORDER")
+            if date_value:
+                try:
+                    # Handle different date formats from Firebird
+                    if hasattr(date_value, 'strftime'):
+                        formatted_date = date_value.strftime("%d.%m.%Y")
+                    else:
+                        # Try to parse string date
+                        from datetime import datetime
+                        if isinstance(date_value, str):
+                            # Try common date formats
+                            for fmt in ["%Y-%m-%d", "%d.%m.%Y", "%d/%m/%Y", "%Y-%m-%d %H:%M:%S"]:
+                                try:
+                                    parsed_date = datetime.strptime(date_value.split()[0], fmt)
+                                    formatted_date = parsed_date.strftime("%d.%m.%Y")
+                                    break
+                                except ValueError:
+                                    continue
+                            else:
+                                formatted_date = str(date_value)
+                        else:
+                            formatted_date = str(date_value)
+                    self.order_date_label.setText(formatted_date)
+                except Exception as e:
+                    print(f"Ошибка форматирования даты: {e}")
+                    self.order_date_label.setText(str(date_value))
+            else:
+                self.order_date_label.setText("—")
             self.customer_name_label.setText(order_info.get("CUSTOMER_NAME", "—"))
             self.current_order_label.setText(str(self.current_order_id))
             

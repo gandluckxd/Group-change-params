@@ -16,7 +16,7 @@ API_HOST = os.getenv("API_HOST", "0.0.0.0")
 DB_CONFIG = {
     "host": os.getenv("DB_HOST", "192.168.1.251"),
     "port": int(os.getenv("DB_PORT", "3050")),
-    "database": os.getenv("DB_NAME", "D:/AltawinDB/altawinSettings.FDB"),
+    "database": os.getenv("DB_NAME", "D:/AltawinDB/altawinOffice.FDB"),
     "user": os.getenv("DB_USER", "sysdba"),
     "password": os.getenv("DB_PASSWORD", "masterkey"),
     "charset": os.getenv("DB_CHARSET", "WIN1251")

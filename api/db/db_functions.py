@@ -218,10 +218,23 @@ def get_order_info(order_id: int) -> List[Dict[str, Any]]:
         
         result = []
         for row in rows:
+            # Format date to string for JSON serialization
+            date_value = row[2]
+            if date_value:
+                try:
+                    if hasattr(date_value, 'strftime'):
+                        formatted_date = date_value.strftime("%Y-%m-%d")
+                    else:
+                        formatted_date = str(date_value)
+                except Exception:
+                    formatted_date = str(date_value) if date_value else None
+            else:
+                formatted_date = None
+                
             result.append({
                 "ID": row[0],
                 "ORDERNO": row[1],
-                "DATEORDER": row[2],
+                "DATEORDER": formatted_date,
                 "ORDER_NAME": row[3],
                 "CUSTOMER_NAME": row[4]
             })
